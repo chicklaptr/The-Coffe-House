@@ -1,30 +1,22 @@
 import db from '../utils/db'; // Đường dẫn tới file cấu hình MySQL của dự án
 import { ResultSetHeader, RowDataPacket } from 'mysql2';
 
-// 1. READ: Lấy danh sách quán (Có hỗ trợ Tìm kiếm & Lọc theo P_ID 3)
-export const getAllCafes = async (filters: any) => {
-    let query = `
-        SELECT c.*, a.has_wifi, a.has_outlets, a.has_snacks, a.has_ac, a.is_non_smoking, a.has_high_tables, a.is_quiet 
+// 1. READ: Lấy danh sách quán 
+export const getAllCafes = async () => {
+    const query = `
+        SELECT
+        c.*,
+        a.has_wifi,
+        a.has_outlets,
+        a.has_snacks,
+        a.has_ac,
+        a.is_non_smoking,
+        a.has_high_tables,
+        a.is_quiet
         FROM cafes c
-        LEFT JOIN amenities a ON c.id = a.cafe_id
-        WHERE 1=1
+        LEFT JOIN amenities a ON c.id=a.cafe_id
     `;
-    const params: any[] = [];
-
-    // Logic tìm kiếm theo tên hoặc khu vực
-    if (filters.keyword) {
-        query += ` AND (c.name_jp LIKE ? OR c.name_vn LIKE ? OR c.address LIKE ?)`;
-        const keyword = `%${filters.keyword}%`;
-        params.push(keyword, keyword, keyword);
-    }
-
-    // Logic lọc theo tiện ích (Màn hình ID 8)
-    if (filters.has_wifi === 'true') { query += ` AND a.has_wifi = TRUE`; }
-    if (filters.is_quiet === 'true') { query += ` AND a.is_quiet = TRUE`; }
-    if (filters.has_ac === 'true') { query += ` AND a.has_ac = TRUE`; }
-    if (filters.has_outlets === 'true') { query += ` AND a.has_outlets = TRUE`; }
-
-    const [rows] = await db.query<RowDataPacket[]>(query, params);
+    const [rows] = await db.query<RowDataPacket[]>(query);
     return rows;
 };
 
@@ -82,3 +74,47 @@ export const deleteCafe = async (cafeId: number) => {
     const [result] = await db.query<ResultSetHeader>(`DELETE FROM cafes WHERE id = ?`, [cafeId]);
     return result.affectedRows > 0;
 };
+
+//SEARCH&FILTER: tìm kiếm và lọc
+export const searchCafes = async(filters:any) => {
+    let query = `
+    SELECT 
+    c.*,
+    a.has_wifi,
+    a.has_outlets,
+    a.has_snacks,
+    a.has_ac,
+    a.is_non_smoking,
+    a.has_high_tables,
+    a.is_quiet
+    FROM cafes c
+    LEFT JOIN amenities a ON c.id=a.cafe_id
+    WHERE 1=1
+    `;
+    const params:any[]=[];
+
+    if (filters.keyword){
+        query+='AND (c.name_jp LIKE ? OR c.name_vn LIKE ? OR c.address LIKE ?)';
+        const keyword = `%${filters.keyword}%`;
+        params.push(keyword,keyword,keyword);
+    }
+    
+    if(filters.has_wifi === 'true'){
+        query+=`AND a.has_wifi = TRUE`;
+    }
+
+    if(filters.is_quiet === 'true'){
+        query+=`AND a.is_quiet = TRUE`;
+    }
+
+    if(filters.has_ac === 'true'){
+        query+=`AND a.has_ac = TRUE`;
+    }
+
+    if(filters.has_outlets === 'true'){
+        query+=`AND a.has_outlets = TRUE`;
+    }
+
+    const [rows] = await db.query<RowDataPacket[]>(query,params);
+    return rows
+}
