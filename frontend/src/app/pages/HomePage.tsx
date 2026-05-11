@@ -14,6 +14,7 @@ import { Badge } from '../components/ui/badge';
 import { Search, Filter, MapPin, Star, X, Wifi, Wind, Plug, Cigarette, Armchair } from 'lucide-react';
 import ProfileDialog from '../components/ProfileDialog';
 import NotificationsDialog from '../components/NotificationsDialog';
+import MapView from '../components/MapView';
 
 export default function HomePage() {
   const [cafes, setCafes] = useState<Cafe[]>([]);
@@ -40,11 +41,12 @@ export default function HomePage() {
   const { t, language } = useLanguage();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!user) {
-      navigate('/login');
-    }
-  }, [user, navigate]);
+  // Temporarily disabled auth check for development
+  // useEffect(() => {
+  //   if (!user) {
+  //     navigate('/login');
+  //   }
+  // }, [user, navigate]);
 
   useEffect(() => {
     const allCafes = getCafes();
@@ -103,9 +105,10 @@ export default function HomePage() {
     navigate(`/cafe/${cafeId}`);
   };
 
-  if (!user) {
-    return null;
-  }
+  // Temporarily disabled user check for development
+  // if (!user) {
+  //   return null;
+  // }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -180,14 +183,16 @@ export default function HomePage() {
         )}
 
         {/* Map placeholder */}
-        <div className="bg-white rounded-lg shadow-md p-4">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="bg-white rounded-lg shadow-md p-4 relative z-0">
+          <div className="flex items-center gap-2 mb-4">
             <MapPin className="size-5 text-blue-600" />
-            <span className="font-medium">Hoàn Kiếm, Hà Nội</span>
+            <span className="font-medium">{t('location')}</span>
           </div>
-          <div className="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center">
-            <p className="text-gray-500">[Map View]</p>
-          </div>
+          <MapView 
+            cafes={filteredCafes} 
+            onCafeClick={handleCafeClick}
+            height="h-48"
+          />
         </div>
 
         {/* Cafe List */}

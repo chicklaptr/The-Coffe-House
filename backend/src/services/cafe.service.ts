@@ -87,33 +87,126 @@ export const deleteCafe = async (cafeId: number) => {
     return true;
 };
 
-// SEARCH&FILTER: tìm kiếm và lọc
+// SEARCH&FILTER: tìm kiếm và lọc quán cafe
 export const searchCafes = async (filters: any) => {
-    let selectString = '*, amenities(*)';
+    try {
+        let selectString = '*, amenities(*)';
 
-    // If there are strict amenity filters, we require inner join so we don't return cafes without matching amenities.
-    if (filters.has_wifi === 'true' || filters.is_quiet === 'true' || filters.has_ac === 'true' || filters.has_outlets === 'true') {
-        selectString = '*, amenities!inner(*)';
+        // Start with base query
+        let query = supabase.from('cafes').select(selectString);
+
+        // 1. SEARCH by keyword (tên quán, địa chỉ)
+        if (filters.keyword && filters.keyword.trim()) {
+            const keyword = filters.keyword.trim();
+            query = query.or(
+                `name_jp.ilike.%${keyword}%,name_vn.ilike.%${keyword}%,address.ilike.%${keyword}%`
+            );
+        }
+
+        // 2. FILTER by status (mở cửa)
+        if (filters.isOpen === 'true') {
+            query = query.eq('is_open', true);
+        }
+
+        // 3. FILTER by crowded status
+        if (filters.isCrowded === 'true') {
+            query = query.eq('is_crowded', true);
+        } else if (filters.isCrowded === 'false') {
+            query = query.eq('is_crowded', false);
+        }
+
+        // 4. FILTER by rating (cần rating >= giá trị)
+        if (filters.minRating) {
+            const minRating = parseFloat(filters.minRating);
+            if (!isNaN(minRating)) {
+                query = query.gte('average_rating', minRating);
+            }
+        }
+
+        // 5. FILTER by amenities
+        // WiFi filter
+        if (filters.hasWifi === 'true') {
+            selectString = '*, amenities!inner(*)';
+            query = supabase.from('cafes').select(selectString);
+            query = query.eq('amenities.has_wifi', true);
+        }
+
+        // AC filter
+        if (filters.hasAc === 'true') {
+            if (filters.hasWifi !== 'true') {
+                selectString = '*, amenities!inner(*)';
+                query = supabase.from('cafes').select(selectString);
+            }
+            query = query.eq('amenities.has_ac', true);
+        }
+
+        // Outlets filter
+        if (filters.hasOutlets === 'true') {
+            if (filters.hasWifi !== 'true' && filters.hasAc !== 'true') {
+                selectString = '*, amenities!inner(*)';
+                query = supabase.from('cafes').select(selectString);
+            }
+            query = query.eq('amenities.has_outlets', true);
+        }
+
+        // Non-smoking filter
+        if (filters.isNonSmoking === 'true') {
+            if (filters.hasWifi !== 'true' && filters.hasAc !== 'true' && filters.hasOutlets !== 'true') {
+                selectString = '*, amenities!inner(*)';
+                query = supabase.from('cafes').select(selectString);
+            }
+            query = query.eq('amenities.is_non_smoking', true);
+        }
+
+        // Quiet filter
+        if (filters.isQuiet === 'true') {
+            if (filters.hasWifi !== 'true' && filters.hasAc !== 'true' && 
+                filters.hasOutlets !== 'true' && filters.isNonSmoking !== 'true') {
+                selectString = '*, amenities!inner(*)';
+                query = supabase.from('cafes').select(selectString);
+            }
+            query = query.eq('amenities.is_quiet', true);
+        }
+
+        // 6. SORTING
+        let orderBy = 'id';
+        let ascending = true;
+        
+        if (filters.sortBy === 'rating') {
+            orderBy = 'average_rating';
+            ascending = false; // Sort by highest rating first
+        } else if (filters.sortBy === 'name') {
+            orderBy = 'name_vn';
+            ascending = true;
+        } else if (filters.sortBy === 'newest') {
+            orderBy = 'id';
+            ascending = false;
+        }
+
+        query = query.order(orderBy, { ascending });
+
+        // 7. PAGINATION (optional)
+        const limit = parseInt(filters.limit) || 20;
+        const offset = parseInt(filters.offset) || 0;
+        
+        if (limit > 0) {
+            query = query.range(offset, offset + limit - 1);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw new Error(error.message);
+
+        // Format response data
+        return data.map((cafe: any) => {
+            const { amenities, ...cafeData } = cafe;
+            const amenityObj = Array.isArray(amenities) ? amenities[0] : amenities;
+            return {
+                ...cafeData,
+                ...(amenityObj || {})
+            };
+        });
+    } catch (error) {
+        throw error;
     }
-
-    let query = supabase.from('cafes').select(selectString);
-
-    if (filters.keyword) {
-        query = query.or(`name_jp.ilike.%${filters.keyword}%,name_vn.ilike.%${filters.keyword}%,address.ilike.%${filters.keyword}%`);
-    }
-
-    // Logic lọc theo tiện ích
-    if (filters.has_wifi === 'true') { query = query.eq('amenities.has_wifi', true); }
-    if (filters.is_quiet === 'true') { query = query.eq('amenities.is_quiet', true); }
-    if (filters.has_ac === 'true') { query = query.eq('amenities.has_ac', true); }
-    if (filters.has_outlets === 'true') { query = query.eq('amenities.has_outlets', true); }
-
-    const { data, error } = await query;
-    if (error) throw new Error(error.message);
-
-    return data.map((cafe: any) => {
-        const { amenities, ...cafeData } = cafe;
-        const amenityObj = Array.isArray(amenities) ? amenities[0] : amenities;
-        return { ...cafeData, ...(amenityObj || {}) };
-    });
 };

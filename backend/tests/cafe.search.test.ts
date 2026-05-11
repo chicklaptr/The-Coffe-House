@@ -54,5 +54,6 @@ describe("Integration Test - Cafe Search/Filter API", () => {
 });
 
 afterAll(async () => {
-  await db.end();
+  // Supabase client does not require explicit connection closing
+  // Just cleanup any resources if needed
 });
