@@ -14,6 +14,7 @@ import { Badge } from '../components/ui/badge';
 import { Search, Filter, MapPin, Star, X, Wifi, Wind, Plug, Armchair } from 'lucide-react';
 import ProfileDialog from '../components/ProfileDialog';
 import NotificationsDialog from '../components/NotificationsDialog';
+import MapView from '../components/MapView';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 const DEFAULT_CAFE_IMAGE = 'https://images.unsplash.com/photo-1554118811-1e0d58224f24';
@@ -119,18 +120,19 @@ export default function HomePage() {
   const [showPromotion, setShowPromotion] = useState(false);
   const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
   const [currentPromoIndex, setCurrentPromoIndex] = useState(0);
-  
+
   const [filters, setFilters] = useState<CafeFilters>(defaultFilters);
 
   const { user } = useAuth();
   const { t, language } = useLanguage();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!user) {
-      navigate('/login');
-    }
-  }, [user, navigate]);
+  // Temporarily disabled auth check for development
+  // useEffect(() => {
+  //   if (!user) {
+  //     navigate('/login');
+  //   }
+  // }, [user, navigate]);
 
   useEffect(() => {
     setPromotions(getPromotions());
@@ -181,13 +183,14 @@ export default function HomePage() {
     navigate(`/cafe/${cafeId}`);
   };
 
-  if (!user) {
-    return null;
-  }
+  // Temporarily disabled user check for development
+  // if (!user) {
+  //   return null;
+  // }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <TopBar 
+      <TopBar
         onNotificationClick={() => setShowNotifications(true)}
         onProfileClick={() => setShowProfile(true)}
       />
@@ -224,7 +227,7 @@ export default function HomePage() {
             <div className="p-4">
               <h2 className="font-bold mb-4">{t('promotions')}</h2>
               <div className="relative">
-                <div 
+                <div
                   className="cursor-pointer"
                   onClick={() => {
                     setSelectedPromotion(promotions[currentPromoIndex]);
@@ -245,7 +248,7 @@ export default function HomePage() {
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex justify-center gap-2 mt-4">
                   <Button size="sm" variant="outline" onClick={prevPromo}>←</Button>
                   <div className="flex items-center gap-1">
@@ -264,14 +267,16 @@ export default function HomePage() {
         )}
 
         {/* Map placeholder */}
-        <div className="bg-white rounded-lg shadow-md p-4">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="bg-white rounded-lg shadow-md p-4 relative z-0">
+          <div className="flex items-center gap-2 mb-4">
             <MapPin className="size-5 text-blue-600" />
-            <span className="font-medium">Hoàn Kiếm, Hà Nội</span>
+            <span className="font-medium">{t('location')}</span>
           </div>
-          <div className="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center">
-            <p className="text-gray-500">[Map View]</p>
-          </div>
+          <MapView
+            cafes={filteredCafes}
+            onCafeClick={handleCafeClick}
+            height="h-96"
+          />
         </div>
 
         {/* Cafe List */}
@@ -332,7 +337,7 @@ export default function HomePage() {
           >
             <X className="size-4" />
           </Button>
-          
+
           <DialogHeader>
             <DialogTitle>{t('filter')}</DialogTitle>
           </DialogHeader>
@@ -434,7 +439,7 @@ export default function HomePage() {
           >
             <X className="size-4" />
           </Button>
-          
+
           <DialogHeader>
             <DialogTitle>{t('promotion')}</DialogTitle>
           </DialogHeader>

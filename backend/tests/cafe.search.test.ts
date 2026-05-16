@@ -68,3 +68,8 @@ describe("GET /api/cafes/search", () => {
     expect(res.body.data).toEqual([]);
   });
 });
+
+afterAll(async () => {
+  // Supabase client does not require explicit connection closing
+  // Just cleanup any resources if needed
+});

@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import cafeRoutes from './routes/cafe.routes';
+import cafeSearchRoutes from './routes/cafe.search.routes';
 
 const app = express();
 
@@ -13,5 +14,6 @@ app.get('/', (req, res) => {
     res.send('Chào mừng đến với API của DokoCafe! Các endpoints chính nằm ở /api/cafes');
 });
 app.use('/api/cafes', cafeRoutes);
+app.use('/api/search', cafeSearchRoutes);
 
 export default app;

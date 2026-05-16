@@ -42,6 +42,7 @@ const translations: Translations = {
   filter: { jp: 'フィルター', vn: 'Lọc' },
   promotions: { jp: '本日の特典', vn: 'Ưu đãi hôm nay' },
   cafes: { jp: '周辺のカフェ', vn: 'Quán cafe quanh bạn' },
+  location: { jp: 'あなたの位置', vn: 'Vị trí của bạn' },
   
   // Cafe Detail
   cafeDetails: { jp: 'カフェ詳細', vn: 'Chi tiết quán' },

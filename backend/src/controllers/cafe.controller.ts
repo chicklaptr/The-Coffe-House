@@ -13,23 +13,28 @@ export const getCafes = async (req: Request, res: Response) => {
     }
 };
 //API: tim kiem va loc quan
-export const searchCafes = async(re: Request, res: Response) => {
+export const searchCafes = async(req: Request, res: Response) => {
     try{
-        const filters = re.query;
+        const filters = req.query;
+        
+        // Log filters for debugging
+        console.log("Search filters:", filters);
+        
         const cafes = await cafeService.searchCafes(filters);
 
         res.status(200).json({
             success: true,
             count: cafes.length,
-            data:cafes
+            data: cafes
         });
-    } catch(error){
-        console.error("Lỗi tìm kiếm/lọc quán: ",error);
+    } catch(error: any){
+        console.error("Lỗi tìm kiếm/lọc quán: ", error);
 
         res.status(500).json({
-            success: true,
-            message: "Lỗi server nội bộ"
-        })
+            success: false,
+            message: "Lỗi server nội bộ",
+            error: error.message
+        });
     }
 };
 

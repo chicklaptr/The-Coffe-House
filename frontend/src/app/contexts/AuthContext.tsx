@@ -81,6 +81,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const currentUser = localStorage.getItem('currentUser');
     if (currentUser) {
       setUser(JSON.parse(currentUser));
+    } else {
+      // Auto-login with first user for development
+      const defaultUser = initialUsers[0];
+      setUser(defaultUser);
+      localStorage.setItem('currentUser', JSON.stringify(defaultUser));
     }
   }, []);
 
