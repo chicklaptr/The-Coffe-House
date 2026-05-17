@@ -6,7 +6,6 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { Star, Upload } from 'lucide-react';
-import { saveReview } from '../utils/mockData';
 
 interface ReviewDialogProps {
   open: boolean;
@@ -17,37 +16,49 @@ interface ReviewDialogProps {
 
 export default function ReviewDialog({ open, onClose, cafeId, onSuccess }: ReviewDialogProps) {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [hoveredRating, setHoveredRating] = useState(0);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!user || !comment.trim()) {
       alert('Please provide a comment');
       return;
     }
 
-    const review = {
-      id: Date.now().toString(),
-      userId: user.id,
-      cafeId,
-      rating,
-      comment,
-      createdAt: new Date().toISOString(),
-      userName: user.name,
-      userAvatar: user.avatar,
-    };
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3000/api/reviews', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          cafe_id: parseInt(cafeId),
+          rating,
+          comment,
+          image_urls: [] // Assuming no actual photo upload for now
+        })
+      });
 
-    saveReview(review);
-    
-    // Reset form
-    setRating(5);
-    setComment('');
-    
-    alert('Review submitted successfully!');
-    onSuccess();
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to submit review');
+      }
+
+      // Reset form
+      setRating(5);
+      setComment('');
+      
+      alert(language === 'jp' ? 'レビューを送信しました！' : 'Đã gửi đánh giá thành công!');
+      onSuccess();
+    } catch (error: any) {
+      console.error('Error submitting review:', error);
+      alert(error.message);
+    }
   };
 
   if (!user) return null;
