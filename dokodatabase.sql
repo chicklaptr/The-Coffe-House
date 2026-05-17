@@ -164,3 +164,55 @@ INSERT INTO reviews (cafe_id, user_id, rating, comment) VALUES
 INSERT INTO review_images (review_id, image_url) VALUES
 (1, 'https://example.com/reviews/photo1.jpg'),
 (1, 'https://example.com/reviews/photo2.jpg');
+-- =========================================================================
+-- 1. BOOKING (ĐẶT CHỖ)
+-- Phục vụ: Màn hình 11 (Khách đặt chỗ) và Màn hình 21 (Chủ quán quản lý)
+-- =========================================================================
+-- Tạo bảng bookings để lưu trữ yêu cầu đặt chỗ.
+-- Ràng buộc: Số người tối thiểu phải là 1 người theo yêu cầu nghiệp vụ.
+CREATE TABLE bookings (
+    id SERIAL PRIMARY KEY,
+    cafe_id INT NOT NULL REFERENCES cafes(id) ON DELETE CASCADE,
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    booking_date DATE NOT NULL,
+    booking_time TIME NOT NULL,
+    number_of_people INT NOT NULL CHECK (number_of_people >= 1), 
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')), 
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =========================================================================
+-- 2. REVIEW & REPORTS (KHIẾU NẠI ĐÁNH GIÁ)
+-- Phục vụ: Màn hình 19 (Chủ quán khiếu nại) và Màn hình 34 (Admin xử lý)
+-- =========================================================================
+-- Bảng reviews (Đánh giá) đã được tạo ở Sprint 1. 
+-- Giờ ta cần thêm bảng review_reports để lưu các đơn khiếu nại (báo cáo vi phạm) từ chủ quán/nhân viên đối với bình luận của khách.
+CREATE TABLE review_reports (
+    id SERIAL PRIMARY KEY,
+    review_id INT NOT NULL REFERENCES reviews(id) ON DELETE CASCADE,
+    reporter_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE, 
+    reason TEXT NOT NULL,
+    detail TEXT, 
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =========================================================================
+-- 3. SHOP (CẬP NHẬT QUÁN CAFE & XÓA QUÁN)
+-- Phục vụ: Màn hình 16 (Chỉnh sửa chi tiết) và Màn hình 17 (Yêu cầu xóa quán)
+-- =========================================================================
+-- Cập nhật bảng cafes hiện tại để bổ sung trạng thái theo dõi thời gian cập nhật 
+-- và hỗ trợ luồng "Yêu cầu xóa quán" gửi cho Admin.
+ALTER TABLE cafes
+ADD COLUMN deletion_requested BOOLEAN DEFAULT FALSE,
+ADD COLUMN deletion_reason TEXT,
+ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+
+-- =========================================================================
+-- 4. ROLE & PROFILE (HỒ SƠ NGƯỜI DÙNG)
+-- Phục vụ: Màn hình 7 (Cập nhật hồ sơ)
+-- =========================================================================
+-- Bảng users đã lưu trữ role_id và avatar_url từ Sprint 1. 
+-- Bổ sung cột thời gian để theo dõi việc cập nhật thông tin cá nhân.
+ALTER TABLE users
+ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;

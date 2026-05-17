@@ -24,22 +24,19 @@ export default function LoginPage() {
   const { t, language } = useLanguage();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    const success = login(email, password);
-    if (success) {
-      // Get user to check role and redirect accordingly
-      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-      
-      if (currentUser.role === 1) {
+    const loggedInUser = await login(email, password);
+    if (loggedInUser) {
+      if (loggedInUser.role === 1) {
         navigate('/home');
-      } else if (currentUser.role === 2) {
+      } else if (loggedInUser.role === 2) {
         navigate('/owner');
-      } else if (currentUser.role === 3) {
+      } else if (loggedInUser.role === 3) {
         navigate('/admin');
-      } else if (currentUser.role === 4) {
+      } else if (loggedInUser.role === 4) {
         navigate('/staff');
       }
     } else {

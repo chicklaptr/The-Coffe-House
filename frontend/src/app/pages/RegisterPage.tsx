@@ -20,7 +20,7 @@ export default function RegisterPage() {
   const { t, language } = useLanguage();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -34,7 +34,7 @@ export default function RegisterPage() {
       return;
     }
 
-    const success = register({
+    const success = await register({
       email,
       name,
       role: parseInt(role) as 1 | 2 | 3 | 4,
@@ -42,18 +42,13 @@ export default function RegisterPage() {
     } as any);
 
     if (!success) {
-      setError(language === 'jp' ? 'このメールは既に登録されています' : 'Email này đã được đăng ký');
+      setError(language === 'jp' ? '登録に失敗しました。メールが既に使用されている可能性があります。' : 'Đăng ký thất bại. Email có thể đã được sử dụng.');
       return;
     }
 
-    // Redirect based on role
-    if (role === '1') {
-      navigate('/');
-    } else if (role === '2') {
-      navigate('/cafe-setup');
-    } else if (role === '4') {
-      navigate('/staff');
-    }
+    // Redirect to login page for all roles after registration
+    alert(language === 'jp' ? '登録成功しました。ログインしてください。' : 'Đăng ký thành công. Vui lòng đăng nhập.');
+    navigate('/login');
   };
 
   return (

@@ -3,6 +3,7 @@ import cors from 'cors';
 import cafeRoutes from './routes/cafe.routes';
 import cafeSearchRoutes from './routes/cafe.search.routes';
 import bookingRoutes from './routes/booking.routes';
+import authRoutes from './routes/auth.routes';
 
 const app = express();
 
@@ -18,5 +19,6 @@ app.get('/', (req, res) => {
 app.use('/api/cafes', cafeRoutes);
 app.use('/api/search', cafeSearchRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/auth', authRoutes);
 
 export default app;

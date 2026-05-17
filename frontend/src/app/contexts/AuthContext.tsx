@@ -1,19 +1,19 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 export interface User {
-  id: string;
+  id: string; // Wait, our backend uses number for ID, but let's keep string to be safe or convert it.
   email: string;
   name: string;
   role: 1 | 2 | 3 | 4; // 1: Customer, 2: Owner, 3: Admin, 4: Staff
   avatar?: string;
   phone?: string;
-  password?: string; // For authentication
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => boolean;
-  register: (data: Omit<User, 'id'>) => boolean;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<User | null>;
+  register: (data: Omit<User, 'id'> & { password?: string }) => Promise<boolean>;
   logout: () => void;
   updateUser: (data: Partial<User>) => void;
   deleteAccount: () => void;
@@ -21,174 +21,119 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock initial users
-const initialUsers: User[] = [
-  {
-    id: '1',
-    email: 'customer@test.com',
-    name: '田中太郎',
-    role: 1,
-    phone: '0901234567',
-    password: 'password123',
-  },
-  {
-    id: '2',
-    email: 'owner@test.com',
-    name: 'Nguyễn Văn An',
-    role: 2,
-    phone: '0987654321',
-    password: 'password123',
-  },
-  {
-    id: '3',
-    email: 'admin@test.com',
-    name: 'Admin System',
-    role: 3,
-    phone: '0900000000',
-    password: 'password123',
-  },
-  {
-    id: '4',
-    email: 'staff@test.com',
-    name: 'Trần Văn Bình',
-    role: 4,
-    phone: '0901234567',
-    password: 'password123',
-  },
-  {
-    id: '5',
-    email: 'binh@cafe1.com',
-    name: 'Trần Văn Bình',
-    role: 4,
-    phone: '0901234567',
-    password: 'password123',
-    avatar: 'https://i.pravatar.cc/150?img=12',
-  },
-];
+const API_URL = 'http://localhost:3000/api';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Parse user profile from backend format to frontend format
+  const formatUser = (data: any): User => ({
+    id: data.id.toString(),
+    email: data.email,
+    name: data.full_name,
+    role: data.role_id,
+    avatar: data.avatar_url,
+    phone: data.phone_number
+  });
 
   useEffect(() => {
-    // Force reinitialize users with password field (for development)
-    // TODO: Remove this force reset in production
-    localStorage.setItem('users', JSON.stringify(initialUsers));
-    
-    // Force reinitialize staff data with correct cafe IDs
-    localStorage.removeItem('staff');
+    const fetchUser = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
 
-    // Check for logged in user
-    const currentUser = localStorage.getItem('currentUser');
-    if (currentUser) {
-      setUser(JSON.parse(currentUser));
-    } else {
-      // Auto-login with first user for development
-      const defaultUser = initialUsers[0];
-      setUser(defaultUser);
-      localStorage.setItem('currentUser', JSON.stringify(defaultUser));
-    }
-  }, []);
+      try {
+        const response = await fetch(`${API_URL}/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
 
-  const login = (email: string, password: string): boolean => {
-    const usersJson = localStorage.getItem('users');
-    if (!usersJson) return false;
-
-    const users: User[] = JSON.parse(usersJson);
-    const foundUser = users.find(u => u.email === email && u.password === password);
-
-    if (foundUser) {
-      setUser(foundUser);
-      localStorage.setItem('currentUser', JSON.stringify(foundUser));
-      return true;
-    }
-    return false;
-  };
-
-  const register = (data: Omit<User, 'id'>): boolean => {
-    const usersJson = localStorage.getItem('users');
-    const users: User[] = usersJson ? JSON.parse(usersJson) : [];
-
-    // Check if email already exists
-    if (users.some(u => u.email === data.email)) {
-      return false;
-    }
-
-    const newUser: User = {
-      ...data,
-      id: Date.now().toString(),
+        if (response.ok) {
+          const data = await response.json();
+          setUser(formatUser(data));
+        } else {
+          localStorage.removeItem('token');
+        }
+      } catch (error) {
+        console.error('Failed to fetch user:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
+    fetchUser();
+  }, []);
 
-    // Auto login after register
-    setUser(newUser);
-    localStorage.setItem('currentUser', JSON.stringify(newUser));
-    return true;
+  const login = async (email: string, password: string): Promise<User | null> => {
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('token', data.token);
+        const formattedUser = formatUser(data.user);
+        setUser(formattedUser);
+        return formattedUser;
+      }
+      return null;
+    } catch (error) {
+      console.error('Login error:', error);
+      return null;
+    }
+  };
+
+  const register = async (data: Omit<User, 'id'> & { password?: string }): Promise<boolean> => {
+    try {
+      const payload = {
+        email: data.email,
+        password: data.password,
+        full_name: data.name,
+        role_id: data.role,
+        phone_number: data.phone
+      };
+
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Register error:', error);
+      return false;
+    }
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('currentUser');
+    localStorage.removeItem('token');
   };
 
   const updateUser = (data: Partial<User>) => {
+    // This is a stub for now. Need to call PUT /api/auth/me if we implement it on backend
     if (!user) return;
-
-    const updatedUser = { ...user, ...data };
-    setUser(updatedUser);
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-
-    // Update in users list
-    const usersJson = localStorage.getItem('users');
-    if (usersJson) {
-      const users: User[] = JSON.parse(usersJson);
-      const index = users.findIndex(u => u.id === user.id);
-      if (index !== -1) {
-        users[index] = updatedUser;
-        localStorage.setItem('users', JSON.stringify(users));
-      }
-    }
+    setUser({ ...user, ...data });
   };
 
   const deleteAccount = () => {
-    if (!user) return;
-
-    // Remove from users list
-    const usersJson = localStorage.getItem('users');
-    if (usersJson) {
-      const users: User[] = JSON.parse(usersJson);
-      const filteredUsers = users.filter(u => u.id !== user.id);
-      localStorage.setItem('users', JSON.stringify(filteredUsers));
-    }
-
-    // Remove related data (bookings, reviews, notifications)
-    const bookingsJson = localStorage.getItem('bookings');
-    if (bookingsJson) {
-      const bookings = JSON.parse(bookingsJson);
-      const filteredBookings = bookings.filter((b: any) => b.userId !== user.id);
-      localStorage.setItem('bookings', JSON.stringify(filteredBookings));
-    }
-
-    const reviewsJson = localStorage.getItem('reviews');
-    if (reviewsJson) {
-      const reviews = JSON.parse(reviewsJson);
-      const filteredReviews = reviews.filter((r: any) => r.userId !== user.id);
-      localStorage.setItem('reviews', JSON.stringify(filteredReviews));
-    }
-
-    const notificationsJson = localStorage.getItem('notifications');
-    if (notificationsJson) {
-      const notifications = JSON.parse(notificationsJson);
-      const filteredNotifications = notifications.filter((n: any) => n.userId !== user.id);
-      localStorage.setItem('notifications', JSON.stringify(filteredNotifications));
-    }
-
+    // Stub
     logout();
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, updateUser, deleteAccount }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, updateUser, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   );
