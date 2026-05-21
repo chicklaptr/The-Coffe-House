@@ -5,6 +5,7 @@ import cafeSearchRoutes from './routes/cafe.search.routes';
 import bookingRoutes from './routes/booking.routes';
 import authRoutes from './routes/auth.routes';
 import reviewRoutes from './routes/review.routes';
+import promotionRoutes from './routes/promotion.routes';
 import uploadRoutes from './routes/uploadRoutes';
 import adminRoutes from './routes/admin.routes';
 const app = express();
@@ -25,5 +26,6 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/promotions', promotionRoutes);
 
 export default app;
